@@ -1,0 +1,10 @@
+## IDE
+.vscode/
+.history/
+.pdm-python
+krddevquizbot.egg-info/
+krddevquizbot/__pycache__/
+__pypackages__/
+tmp/
+
+.env
