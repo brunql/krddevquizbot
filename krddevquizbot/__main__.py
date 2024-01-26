@@ -4,7 +4,9 @@ import os
 import random
 
 from telegram import Update, Poll, User
+from telegram.constants import ParseMode
 from telegram.ext import Application, PollHandler, PollAnswerHandler, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.helpers import escape_markdown
 
 from krddevquizbot.questions import QUESTIONS
 
@@ -130,6 +132,8 @@ async def admin_next_question_command(update: Update, context: ContextTypes.DEFA
     return
 
   question = QUESTIONS[CURRENT_QUESTION_INDEX]
+
+  question['answers_count'] = 0
   
   for user_id in USERS_STATS.keys():
     try:
@@ -185,6 +189,11 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 
   await context.bot.delete_message(chat_id=user_id, message_id=poll.get("message_id", 0))
 
+  if 'answers_count' not in question:
+    question['answers_count'] = 0
+
+  question['answers_count'] += 1
+
   if CURRENT_QUESTION_ANSWERS_COUNT == 0:
     prefix = [
       "Оппа! {name} уже ответил! 🔥", 
@@ -233,6 +242,23 @@ async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE
   await update.message.reply_text(msg)
 
 
+async def admin_answers_count_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+  init_user(update)
+
+  if not is_admin(update):
+    await update.message.reply_text("🧾 У вас плохой кредитный скоринг, обратитесь в другой банк.")
+    return
+  
+  msg = "```\n"
+
+  for i, q in enumerate(QUESTIONS):
+    msg += f"{str(i+1).zfill(2)}. Получено ответов: {q.get('answers_count', 0)}\n"
+
+  msg += "```"
+
+  await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+
+
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   if not is_admin(update):
     await update.message.reply_text("Линия занята! Зайдите позже 🤡")
@@ -243,7 +269,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
       USERS_STATS[user_id]["correct"] = 0
       USERS_STATS[user_id]["fail"] = 0
 
-  await update.message.reply_text("Готово")
+    await update.message.reply_text("Готово")
 
 
 if __name__ == "__main__":
@@ -256,6 +282,7 @@ if __name__ == "__main__":
   application.add_handler(CommandHandler("admin_start_quiz", admin_start_quiz_command))
   application.add_handler(CommandHandler("admin_next_question", admin_next_question_command))
   application.add_handler(CommandHandler("admin_stats", admin_stats_command))
+  application.add_handler(CommandHandler("admin_answers_count", admin_answers_count_command))
   
   application.add_handler(MessageHandler(filters.TEXT, message_handler))
 
