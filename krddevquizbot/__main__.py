@@ -18,8 +18,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-TOTAL_VOTER_COUNT = 3
-
 # DB
 USERS_STATS = {}
 POLLS = {}
@@ -180,6 +178,8 @@ async def admin_next_question_command(update: Update, context: ContextTypes.DEFA
    
 
 async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+  global CURRENT_QUESTION_ANSWERS_COUNT
+
   if update.poll.is_closed:
     logging.error("receive_quiz_answer: poll.is_closed")
     return
@@ -237,6 +237,8 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     msg = random.choice(prefix)
 
     await broadcast_message(msg.format(name=get_name(user_id)), context)
+  
+  CURRENT_QUESTION_ANSWERS_COUNT += 1
 
 
 async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
