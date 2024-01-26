@@ -21,17 +21,16 @@ logger = logging.getLogger(__name__)
 TOTAL_VOTER_COUNT = 3
 
 # DB
-USERS_STATS = {
-  # 123: {'user': User(123, "First1", False, "Last1", "username1"), 'correct': 2, 'fail': 10},
-  # 124: {'user': User(124, "First2", False, "Last2", "username2"), 'correct': 15, 'fail': 33},
-}
+USERS_STATS = {}
 POLLS = {}
 
 ADMINS = ["brunql", "darkdef_pr"]
 
 CURRENT_QUESTION_INDEX = 0
 CURRENT_QUESTION_ANSWERS_COUNT = 0
- 
+CURRENT_MEM_INDEX = 0
+MEMS_DIR_PATH = "mems"
+
 SKIPMESSAGES = [
   "Слиться!",
   "Спиться!",
@@ -79,7 +78,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 Второе правило клуба - для телеграмма правильный ответ всегда первый, но мы то знаем, что это не так! 🤓
 
-Третье правило клуба - ответил на вопрос - выпил! 🍾
+Третье правило клуба - ответил на вопрос - выпил! 🍺
 
 Желаем удачи! 🎃 🤝
 
@@ -90,7 +89,7 @@ FULLNAME={user.full_name}
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   init_user(update)
-  await update.message.reply_text("🙈 Помощи не будет можно даже не надеяться. 🤪")
+  await update.message.reply_text("🙈 Помощи не будет можно даже не надеяться. 🤪")  
 
 
 async def broadcast_message(text: str, context: ContextTypes.DEFAULT_TYPE):
@@ -98,7 +97,33 @@ async def broadcast_message(text: str, context: ContextTypes.DEFAULT_TYPE):
     try:
       await context.bot.send_message(chat_id=user_id, text=f"🐳 broadcast: {text}")
     except Exception as ex:
-      logging.error(f"admin_start_quiz_command: broadcast send_message fail: {ex} name={get_name(user_id)}")
+      logging.error(f"broadcast_message: send_message fail: {ex} name={get_name(user_id)}")
+
+
+async def broadcast_next_mem(context: ContextTypes.DEFAULT_TYPE):
+  global CURRENT_MEM_INDEX
+  
+  mems = os.listdir(MEMS_DIR_PATH)
+  if len(mems) == 0:
+    logging.error("broadcast_next_mem: no mems found")
+    return
+  
+  if CURRENT_MEM_INDEX >= len(mems):
+    CURRENT_MEM_INDEX = 0
+
+  mem_filename = mems[CURRENT_MEM_INDEX]
+
+  CURRENT_MEM_INDEX += 1
+
+  for user_id in USERS_STATS.keys():
+    try:
+      await context.bot.send_photo(
+        chat_id=user_id, 
+        photo=open(os.path.join(MEMS_DIR_PATH, mem_filename), 'rb'), 
+        caption="🐳 broadcast: #include <image.h>"
+      )
+    except Exception as ex:
+      logging.error(f"broadcast_next_mem: send_photo fail: {ex} name={get_name(user_id)}")
 
 
 async def admin_start_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:  
@@ -206,6 +231,7 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
       "{name}, права купил? 😱 Пристегнитесь тут взлетают! 🛫",
       "Думается мне что у {name} есть все шансы на победу ведь это - 🤖",
       "{name}, освободился? С тебя мемасик! 👻",
+      "{name}, псс! 🐍 бро, давай всем скажем, что этот бот написан на PHP?",
     ]
 
     msg = random.choice(prefix)
@@ -259,6 +285,16 @@ async def admin_answers_count_command(update: Update, context: ContextTypes.DEFA
   await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
 
 
+async def admin_next_mem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+  init_user(update)
+
+  if not is_admin(update):
+    await update.message.reply_text("No. Just no.")
+    return
+
+  await broadcast_next_mem(context)
+
+
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   if not is_admin(update):
     await update.message.reply_text("Линия занята! Зайдите позже 🤡")
@@ -283,6 +319,7 @@ if __name__ == "__main__":
   application.add_handler(CommandHandler("admin_next_question", admin_next_question_command))
   application.add_handler(CommandHandler("admin_stats", admin_stats_command))
   application.add_handler(CommandHandler("admin_answers_count", admin_answers_count_command))
+  application.add_handler(CommandHandler("admin_next_mem", admin_next_mem))
   
   application.add_handler(MessageHandler(filters.TEXT, message_handler))
 
