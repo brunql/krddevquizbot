@@ -2,6 +2,7 @@
 import logging
 import os
 import random
+from datetime import datetime
 
 from telegram import Update, Poll, User
 from telegram.constants import ParseMode
@@ -9,6 +10,7 @@ from telegram.ext import Application, PollHandler, PollAnswerHandler, CommandHan
 from telegram.helpers import escape_markdown
 
 from krddevquizbot.questions import QUESTIONS
+
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -24,8 +26,10 @@ POLLS = {}
 
 ADMINS = ["brunql", "darkdef_pr"]
 
+POLL_OPEN_PERIOD_SECONDS = 10
+
 CURRENT_QUESTION_INDEX = 0
-CURRENT_QUESTION_ANSWERS_COUNT = 0
+CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = 0
 CURRENT_MEM_INDEX = 0
 MEMS_DIR_PATH = "mems"
 
@@ -56,10 +60,22 @@ def get_name(user_id: int) -> str:
   return user.name if user else ""
 
 
+def get_user_score(user_id: int) -> int:
+  return USERS_STATS.get(user_id, {}).get('score', 0)
+
+
+def fmt_score(score: float) -> str:
+  return f"{score:.1f}"
+
+
+def fmt_user_score(user_id: int) -> int:
+  return fmt_score(get_user_score(user_id))
+
+
 def init_user(update: Update):
   user = update.effective_user
   if user.id not in USERS_STATS:
-    USERS_STATS[user.id] = {'user': user, 'correct': 0, 'fail': 0}
+    USERS_STATS[user.id] = {'user': user, 'correct': 0, 'fail': 0, 'score': 0}
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -79,9 +95,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 Третье правило клуба - ответил на вопрос - выпил! 🍺
 
 Желаем удачи! 🎃 🤝
-
-USERNAME={user.username}
-FULLNAME={user.full_name}
 """)
 
 
@@ -139,9 +152,9 @@ async def admin_start_quiz_command(update: Update, context: ContextTypes.DEFAULT
 
 async def admin_next_question_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   global CURRENT_QUESTION_INDEX
-  global CURRENT_QUESTION_ANSWERS_COUNT
+  global CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
 
-  CURRENT_QUESTION_ANSWERS_COUNT = 0
+  CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = 0
 
   init_user(update)
 
@@ -167,18 +180,46 @@ async def admin_next_question_command(update: Update, context: ContextTypes.DEFA
         type=Poll.QUIZ, 
         correct_option_id=0, # always set zero
         protect_content=True,
+        open_period=POLL_OPEN_PERIOD_SECONDS,
       )
 
-      POLLS[msg.poll.id] = {"user_id": user_id, "message_id": msg.id}
+      POLLS[msg.poll.id] = {"user_id": user_id, "message_id": msg.id, "start_time": datetime.now()}
 
     except Exception as ex:
       logging.error(f"admin_next_question_command: broadcast send_poll fail: {ex} name={get_name(user_id)}")
 
   CURRENT_QUESTION_INDEX += 1
-   
+
+  context.job_queue.run_once(show_first_right_answered_user, POLL_OPEN_PERIOD_SECONDS + 2)
+
+
+async def show_first_right_answered_user(context: ContextTypes.DEFAULT_TYPE):
+  prefix = [
+      "Оппа! {name} уже ответил! 🔥", 
+      "У {name} самая быстрая 🦾 лапка на диком востоке!", 
+      "Так держать username! request_id={name} traceback=not found", 
+      "Кажется {name} нас вломал, ну и ладно... 🍺 \n# docker kill krddevquizbot", 
+      "А {name} то молодец! ⚡️", 
+      "{name}, случайно нажал? 🧐",
+      "Уважаемый, {name}! Ваш запрос находится в обработке, ближайший освободившийся робот вам не ответит. 🙈",
+      "{name}, права купил? 😱 Пристегнитесь тут взлетают! 🛫",
+      "Думается мне что у {name} есть все шансы на победу ведь это - 🤖",
+      "{name}, освободился? С тебя мемасик! 👻",
+      "{name}, псс! 🐍 бро, давай всем скажем, что этот бот написан на PHP?",
+    ]
+
+  msg = random.choice(prefix)
+  user_id = CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
+  if user_id:
+    text = msg.format(name=get_name(user_id))    
+    await broadcast_message(text, context)
+    await broadcast_next_mem(context)
+  else:
+    await broadcast_message("🤖 К великому сожалению никто правильно не ответил. Мемов не будет.", context)
+
 
 async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-  global CURRENT_QUESTION_ANSWERS_COUNT
+  global CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
 
   if update.poll.is_closed:
     logging.error("receive_quiz_answer: poll.is_closed")
@@ -189,6 +230,7 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
   if not user_id:
     logging.error(f"receive_quiz_answer: poll for user not found: name={get_name(user_id)}")
     return
+
     
   qs = list(filter(lambda x: x["question"] in update.poll.question, QUESTIONS))
   if len(qs) != 1:
@@ -207,8 +249,21 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     logging.error(f"receive_quiz_answer: user in USERS_STATS not found: user_id={user_id}")
     return
 
+  start_time = poll.get("start_time")
+  if not start_time:
+    logging.error(f"receive_quiz_answer: start_time in poll for user not found: name={get_name(user_id)}")
+    return
+  
+  score = 100 - (datetime.now() - start_time).total_seconds()
+  if score < 0:
+    score = 1
+
   if is_correct:
     user_info['correct'] += 1
+    USERS_STATS[user_id]['score'] += score
+    
+    if not CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID:
+      CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = user_id
   else:
     user_info['fail'] += 1
 
@@ -218,28 +273,7 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     question['answers_count'] = 0
 
   question['answers_count'] += 1
-
-  if CURRENT_QUESTION_ANSWERS_COUNT == 0:
-    prefix = [
-      "Оппа! {name} уже ответил! 🔥", 
-      "У {name} самая быстрая 🦾 лапка на диком востоке!", 
-      "Так держать username! request_id={name} traceback=not found", 
-      "Кажется {name} нас вломал, ну и ладно... 🍺 \n# docker kill krddevquizbot", 
-      "А {name} то молодец! ⚡️", 
-      "{name}, случайно нажал? 🧐",
-      "Уважаемый, {name}! Ваш запрос находится в обработке, ближайший освободившийся робот вам не ответит. 🙈",
-      "{name}, права купил? 😱 Пристегнитесь тут взлетают! 🛫",
-      "Думается мне что у {name} есть все шансы на победу ведь это - 🤖",
-      "{name}, освободился? С тебя мемасик! 👻",
-      "{name}, псс! 🐍 бро, давай всем скажем, что этот бот написан на PHP?",
-    ]
-
-    msg = random.choice(prefix)
-
-    await broadcast_message(msg.format(name=get_name(user_id)), context)
   
-  CURRENT_QUESTION_ANSWERS_COUNT += 1
-
 
 async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   init_user(update)
@@ -248,14 +282,16 @@ async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text("✍️ Арифметические операции выполняются вручную, это вам не джейсоны в крудах перекладывать! 🌭 😱")
     return
 
-  users_sorted = list(sorted(USERS_STATS.values(), key=lambda x: x["correct"], reverse=True))
+  users_sorted = USERS_STATS.values()
+  users_sorted = list(sorted(users_sorted, key=lambda x: x["score"], reverse=True))
+  users_sorted = list(sorted(users_sorted, key=lambda x: x["correct"], reverse=True))
 
   stats = ""
   for i, x in enumerate(users_sorted):
     if i == 0: stats += "🤓 "
     if i == 1: stats += "🔥 "
     if i == 2: stats += "👾 "
-    stats += f"{i+1}: {x['user'].full_name} @{x['user'].username}  {x['correct']}👍  {x['fail']}👎\n"
+    stats += f"{i+1}: {x['user'].full_name} @{x['user'].username}  {x['correct']}👍  {x['fail']}👎 (score: {fmt_score(x['score'])})\n"
 
   msg = f"""
 Победила дружба! 🤝 😇
