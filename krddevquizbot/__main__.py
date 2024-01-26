@@ -345,6 +345,15 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     await update.message.reply_text("Готово")
 
+  global POLL_OPEN_PERIOD_SECONDS
+  if update.message.text == "Переключить скорость":
+    if POLL_OPEN_PERIOD_SECONDS == 10:
+      POLL_OPEN_PERIOD_SECONDS = 60
+    else:
+      POLL_OPEN_PERIOD_SECONDS = 10
+
+    await update.message.reply_text(f"Готово POLL_OPEN_PERIOD_SECONDS={POLL_OPEN_PERIOD_SECONDS}")
+
 
 if __name__ == "__main__":
   BOT_TOKEN = os.environ.get("BOT_TOKEN")
