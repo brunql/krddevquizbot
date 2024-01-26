@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 TOTAL_VOTER_COUNT = 3
 
 # DB
-USERS = {
+USERS_STATS = {
   # 123: {'user': User(123, "First1", False, "Last1", "username1"), 'correct': 2, 'fail': 10},
   # 124: {'user': User(124, "First2", False, "Last2", "username2"), 'correct': 15, 'fail': 33},
 }
@@ -28,6 +28,7 @@ POLLS = {}
 ADMINS = ["brunql", "darkdef_pr"]
 
 CURRENT_QUESTION_INDEX = 0
+CURRENT_QUESTION_ANSWERS_COUNT = 0
  
 SKIPMESSAGES = [
   "Слиться!",
@@ -52,14 +53,14 @@ def is_admin(update: Update) -> bool:
 
 
 def get_name(user_id: int) -> str:
-  user = USERS.get(user_id, {}).get('user')
+  user = USERS_STATS.get(user_id, {}).get('user')
   return user.name if user else ""
 
 
 def init_user(update: Update):
   user = update.effective_user
-  if user.id not in USERS:
-    USERS[user.id] = {'user': user, 'correct': 0, 'fail': 0}
+  if user.id not in USERS_STATS:
+    USERS_STATS[user.id] = {'user': user, 'correct': 0, 'fail': 0}
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -91,7 +92,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def broadcast_message(text: str, context: ContextTypes.DEFAULT_TYPE):
-  for user_id in USERS.keys():
+  for user_id in USERS_STATS.keys():
     try:
       await context.bot.send_message(chat_id=user_id, text=f"🐳 broadcast: {text}")
     except Exception as ex:
@@ -100,7 +101,7 @@ async def broadcast_message(text: str, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_start_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:  
   global CURRENT_QUESTION_INDEX
-
+ 
   init_user(update)
 
   if not is_admin(update):
@@ -113,6 +114,9 @@ async def admin_start_quiz_command(update: Update, context: ContextTypes.DEFAULT
 
 async def admin_next_question_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   global CURRENT_QUESTION_INDEX
+  global CURRENT_QUESTION_ANSWERS_COUNT
+
+  CURRENT_QUESTION_ANSWERS_COUNT = 0
 
   init_user(update)
 
@@ -127,7 +131,7 @@ async def admin_next_question_command(update: Update, context: ContextTypes.DEFA
 
   question = QUESTIONS[CURRENT_QUESTION_INDEX]
   
-  for user_id in USERS.keys():
+  for user_id in USERS_STATS.keys():
     try:
       msg = await context.bot.send_poll(
         user_id, 
@@ -156,7 +160,7 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
   if not user_id:
     logging.error(f"receive_quiz_answer: poll for user not found: name={get_name(user_id)}")
     return
-
+    
   qs = list(filter(lambda x: x["question"] in update.poll.question, QUESTIONS))
   if len(qs) != 1:
     logging.error(f"receive_quiz_answer: question not found: {update.poll.question} name={get_name(user_id)}")
@@ -169,12 +173,35 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 
   is_correct = update.poll.options[correct_option_id].voter_count > 0
 
+  user_info = USERS_STATS.get(user_id, {})  
+  if not user_info:
+    logging.error(f"receive_quiz_answer: user in USERS_STATS not found: user_id={user_id}")
+    return
+
   if is_correct:
-    USERS[user_id]['correct'] += 1
+    user_info['correct'] += 1
   else:
-    USERS[user_id]['fail'] += 1
+    user_info['fail'] += 1
 
   await context.bot.delete_message(chat_id=user_id, message_id=poll.get("message_id", 0))
+
+  if CURRENT_QUESTION_ANSWERS_COUNT == 0:
+    prefix = [
+      "Оппа! {name} уже ответил! 🔥", 
+      "У {name} самая быстрая 🦾 лапка на диком востоке!", 
+      "Так держать username! request_id={name} traceback=not found", 
+      "Кажется {name} нас вломал, ну и ладно... 🍺 \n# docker kill krddevquizbot", 
+      "А {name} то молодец! ⚡️", 
+      "{name}, случайно нажал? 🧐",
+      "Уважаемый, {name}! Ваш запрос находится в обработке, ближайший освободившийся робот вам не ответит. 🙈",
+      "{name}, права купил? 😱 Пристегнитесь тут взлетают! 🛫",
+      "Думается мне что у {name} есть все шансы на победу ведь это - 🤖",
+      "{name}, освободился? С тебя мемасик! 👻",
+    ]
+
+    msg = random.choice(prefix)
+
+    await broadcast_message(msg.format(name=get_name(user_id)), context)
 
 
 async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -184,7 +211,7 @@ async def admin_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text("✍️ Арифметические операции выполняются вручную, это вам не джейсоны в крудах перекладывать! 🌭 😱")
     return
 
-  users_sorted = list(sorted(USERS.values(), key=lambda x: x["correct"], reverse=True))
+  users_sorted = list(sorted(USERS_STATS.values(), key=lambda x: x["correct"], reverse=True))
 
   stats = ""
   for i, x in enumerate(users_sorted):
@@ -212,9 +239,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return
   
   if update.message.text == "Сбросить счетчики":
-    for user_id in USERS.keys():
-      USERS[user_id]["correct"] = 0
-      USERS[user_id]["fail"] = 0
+    for user_id in USERS_STATS.keys():
+      USERS_STATS[user_id]["correct"] = 0
+      USERS_STATS[user_id]["fail"] = 0
 
   await update.message.reply_text("Готово")
 
