@@ -6,6 +6,11 @@ QUESTIONS = [
     "correct_option_number": 2
   },
   {
+    "question": "В каком году вышла первая версия PHP?",
+    "options": ["1993", "1995", "1994", "1997"],
+    "correct_option_number": 2
+  },
+  {
     "question": "Каких JOIN не бывает?",
     "options": ["INNER", "CROSS", "FULL", "OUT"],
     "correct_option_number": 4
@@ -21,29 +26,9 @@ QUESTIONS = [
     "correct_option_number": 3
   },
   {
-    "question": "Как создать коммит для аннигиляции изменений предыдущего?",
-    "options": ["git revert HEAD", "git reset --mixed HEAD~1", "git diff HEAD~1 HEAD", "git rebase master"],
-    "correct_option_number": 1
-  },
-  {
     "question": "Оторвалась голова, что делать?",
     "options": ["git log", "git checkout master", "git revert HEAD", "git clone"],
     "correct_option_number": 2
-  },
-  {
-    "question": "Потеряли коммит в объектной БД, ссылок на него нет, где искать?",
-    "options": ["git reflog", "git log -S deadbeef", "git grep -i -n deadbeef", "git log --grep deadbeef"],
-    "correct_option_number": 1
-  },
-  {
-    "question": "Как проверить информацию о дистрибутиве?",
-    "options": ["lscpu", "lsb_release -a", "lsb_release -c", "lsblk"],
-    "correct_option_number": 2
-  },
-  {
-    "question": "Что делает команда “cd -”?",
-    "options": ["Переход в домашнюю папку", "Просмотр каталога", "Переход в предыдущую папку", "Выход из системы"],
-    "correct_option_number": 3
   },
   {
     "question": "Как получить последние 10 команд?",
@@ -56,12 +41,7 @@ QUESTIONS = [
     "correct_option_number": 1
   },
   {
-    "question": "PHP-разраба попросили поправить JS-скрипт, как бы отмазался Валера?",
-    "options": ["К сожалению занят, пиво выбираю", "К сожалению занят, пиво пью", "Я слишком стар для этого дерьма", "Жира таскс оверфлоу"],
-    "correct_option_number": 2
-  },
-  {
-    "question": "Сколько паттернов разработки знает Валера?",
+    "question": "Сколько паттернов разработки должен знать PHP разработчик?",
     "options": ["10", "23", "5", "1"],
     "correct_option_number": 2
   },
@@ -71,18 +51,63 @@ QUESTIONS = [
     "correct_option_number": 3
   },
   {
-    "question": "Какой принцип скрывается под аббревиатурой DI?",
-    "options": ["Data In", "Dependency Inversion", "Dependency Injection", "Discrete Input"],
-    "correct_option_number": 2
-  },
-  {
-    "question": "Зачем нужен TURN-сервер для WebRTC?",
-    "options": ["Помогает устройствам, находящимся за NAT определить внешний IP адрес роутера", "Помогает установить канал связи между двумя клиентами и обеспечивает транзит трафика через себя", "Организует обмен SDP между клиентами", "Мониторинг качества соединений по аудио-видео связи"],
+    "question": "Какой принцип скрывается под аббревиатурой DIP?",
+    "options": ["Data In Principle", "Dependency Inversion Principle", "Dependency Injection Principle", "Discrete Input Protocol"],
     "correct_option_number": 2
   },
   {
     "question": "Предположим, Валера хочет отправить Марку секретное сообщение, каким протоколом им следует воспользоваться для подготовки секретного ключа?",
     "options": ["ICMP", "Протоколом Диффи-Хеллмана", "HTTP", "NTP"],
     "correct_option_number": 2
+  },
+  {
+    "question": "Что будет в переменной $x после выполнения кода $x = 5; $x % 2;",
+    "options": ["0", "2", "5", "1"],
+    "correct_option_number": 3
+  },
+  {
+    "question": "С помощью какой функции можно удалить Cookie?",
+    "options": ["getcookie", "setcookie", "deletecookie", "readcookie"],
+    "correct_option_number": 2
+  },
+  {
+    "question": "Что будет в переменной $result после выполнения кода $i = 5; $result = ++$i;?",
+    "options": ["6", "5", "4", "7"],
+    "correct_option_number": 1
+  },
+  {
+    "question": "С помощью какой функции можно прочитать файл?",
+    "options": ["print_r", "file_get_contents", "array_merge", "read_from_file"],
+    "correct_option_number": 2
+  },
+  {
+    "question": "Что будет в переменной $result после выполнения кода $result = (true xor true)?",
+    "options": ["false", "0", "true", "1"],
+    "correct_option_number": 1
+  },
+  {
+    "question": "Что будет в переменной $x после выполнения кода $x = 2 <=> 4;?",
+    "options": ["false", "-1", "true", "0"],
+    "correct_option_number": 2
+  },
+  {
+    "question": "Продолжит ли код выполнение после выражения require 1.php; если файл 1.php не будет найден?",
+    "options": ["да, но выведет ошибку", "да, без каких либо ошибок", "нет, выведет ошибку и завершится", "свой создаст"],
+    "correct_option_number": 3
+  },
+  {
+    "question": "Какая функция возвращает максимальное значение памяти, выделенной PHP скрипту?",
+    "options": ["memory_limit", "memory_get_max_usage", "memory_get_peak_usage", "memory_get_usage"],
+    "correct_option_number": 3
+  },
+  {
+    "question": "Что выведет этот код: echo 0.1 + 0.2 - 0.3; ?",
+    "options": ["0", "0.0", "5.5511151231258E-17", "0.0000000001"],
+    "correct_option_number": 3
+  },
+  {
+    "question": "Какой из перечисленных методов не является магическим?",
+    "options": ["__set", "__clone", "__static", "__invoke"],
+    "correct_option_number": 3
   },
 ]
