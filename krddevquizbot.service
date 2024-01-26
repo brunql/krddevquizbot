@@ -1,0 +1,16 @@
+[Unit]
+Description=krd.dev quiz bot
+After=network.target
+
+[Service]
+WorkingDirectory=/root/krddevquizbot
+ExecStart=pdm run bot
+KillMode=process
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=krddevquizbot
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
