@@ -26,7 +26,7 @@ POLLS = {}
 
 ADMINS = ["brunql", "darkdef_pr"]
 
-POLL_OPEN_PERIOD_SECONDS = 60
+POLL_OPEN_PERIOD_SECONDS = 30
 
 CURRENT_QUESTION_INDEX = 0
 CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = 0
@@ -348,6 +348,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
   global POLL_OPEN_PERIOD_SECONDS
   if update.message.text == "Переключить скорость":
     if POLL_OPEN_PERIOD_SECONDS == 10:
+      POLL_OPEN_PERIOD_SECONDS = 30
+    elif POLL_OPEN_PERIOD_SECONDS == 30:
       POLL_OPEN_PERIOD_SECONDS = 60
     else:
       POLL_OPEN_PERIOD_SECONDS = 10
