@@ -61,7 +61,7 @@ QUESTIONS = [
     "correct_option_number": 2
   },
   {
-    "question": "Что будет в переменной $x после выполнения кода $x = 5; $x % 2;",
+    "question": "Что будет в переменной $x после выполнения кода: \n$x = 5; $x % 2;",
     "options": ["0", "2", "5", "1"],
     "correct_option_number": 3
   },
@@ -71,7 +71,7 @@ QUESTIONS = [
     "correct_option_number": 2
   },
   {
-    "question": "Что будет в переменной $result после выполнения кода $i = 5; $result = ++$i;?",
+    "question": "Что будет в переменной $result после выполнения кода: \n$i = 5; $result = ++$i;",
     "options": ["6", "5", "4", "7"],
     "correct_option_number": 1
   },
@@ -81,12 +81,12 @@ QUESTIONS = [
     "correct_option_number": 2
   },
   {
-    "question": "Что будет в переменной $result после выполнения кода $result = (true xor true)?",
+    "question": "Что будет в переменной $result после выполнения кода: \n$result = (true xor true);",
     "options": ["false", "0", "true", "1"],
     "correct_option_number": 1
   },
   {
-    "question": "Что будет в переменной $x после выполнения кода $x = 2 <=> 4;?",
+    "question": "Что будет в переменной $x после выполнения кода: \n$x = 2 <=> 4;",
     "options": ["false", "-1", "true", "0"],
     "correct_option_number": 2
   },
@@ -101,7 +101,7 @@ QUESTIONS = [
     "correct_option_number": 3
   },
   {
-    "question": "Что выведет этот код: echo 0.1 + 0.2 - 0.3; ?",
+    "question": "Что выведет этот код: \necho 0.1 + 0.2 - 0.3;",
     "options": ["0", "0.0", "5.5511151231258E-17", "0.0000000001"],
     "correct_option_number": 3
   },
