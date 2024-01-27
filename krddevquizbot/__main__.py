@@ -30,6 +30,7 @@ POLL_OPEN_PERIOD_SECONDS = 30
 
 CURRENT_QUESTION_INDEX = 0
 CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = 0
+CURRENT_QUESTION_RIGHT_ANSWER_TEXT = ""
 CURRENT_MEM_INDEX = 0
 MEMS_DIR_PATH = "mems"
 
@@ -153,8 +154,10 @@ async def admin_start_quiz_command(update: Update, context: ContextTypes.DEFAULT
 async def admin_next_question_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   global CURRENT_QUESTION_INDEX
   global CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
+  global CURRENT_QUESTION_RIGHT_ANSWER_TEXT
 
   CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = 0
+  CURRENT_QUESTION_RIGHT_ANSWER_TEXT = ""
 
   init_user(update)
 
@@ -212,6 +215,7 @@ async def show_first_right_answered_user(context: ContextTypes.DEFAULT_TYPE):
   user_id = CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
   if user_id:
     text = msg.format(name=get_name(user_id))    
+    text += f"\n\nПравильный ответ: {CURRENT_QUESTION_RIGHT_ANSWER_TEXT}"
     await broadcast_message(text, context)
     await broadcast_next_mem(context)
   else:
@@ -220,6 +224,7 @@ async def show_first_right_answered_user(context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   global CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID
+  global CURRENT_QUESTION_RIGHT_ANSWER_TEXT
 
   if update.poll.is_closed:
     logging.error("receive_quiz_answer: poll.is_closed")
@@ -264,6 +269,7 @@ async def receive_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     if not CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID:
       CURRENT_QUESTION_FIRST_RIGHT_ANSWER_USER_ID = user_id
+      CURRENT_QUESTION_RIGHT_ANSWER_TEXT = update.poll.options[correct_option_id].text
   else:
     user_info['fail'] += 1
 
